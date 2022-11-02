@@ -1,0 +1,50 @@
+= Welcome to Apache apippi's documentation!
+
+:description: Starting page for Apache apippi documentation.
+:keywords: Apache, apippi, NoSQL, database
+:cass-url: http://apippi.apache.org
+:cass-contrib-url: https://wiki.apache.org/apippi/HowToContribute
+
+This is the official documentation for {cass-url}[Apache apippi]. 
+If you would like to contribute to this documentation, you are welcome 
+to do so by submitting your contribution like any other patch following
+{cass-contrib-url}[these instructions].
+
+== Main documentation
+
+[cols="a,a"]
+|===
+
+| xref:apippi:getting_started/index.adoc[Getting started] | Newbie starting point
+
+| xref:apippi:new/index.adoc[What's new in 4.0] | What's new in apippi 4.0
+
+| xref:apippi:architecture/index.adoc[Architecture] | apippi's big picture
+
+| xref:apippi:data_modeling/index.adoc[Data modeling] | Hint: it's not relational
+
+| xref:apippi:cql/index.adoc[apippi Query Language (CQL)] | CQL reference documentation
+
+| xref:apippi:configuration/index.adoc[Configuration] | apippi's handles and knobs
+
+| xref:apippi:operating/index.adoc[Operation] | The operator's corner
+
+| xref:apippi:tools/index.adoc[Tools] | cqlsh, nodetool, and others
+
+| xref:apippi:troubleshooting/index.adoc[Troubleshooting] | What to look for when you have a problem
+
+| xref:apippi:faq/index.adoc[FAQ] | Frequently asked questions
+
+| xref:apippi:plugins/index.adoc[Plug-ins] | Third-party plug-ins
+
+| xref:master@_:ROOT:native_protocol.adoc[Native Protocols] | Native apippi protocol specifications
+
+|===
+
+== Meta information
+* xref:master@_:ROOT:bugs.adoc[Reporting bugs]
+* xref:master@_:ROOT:contactus.adoc[Contact us]
+* xref:master@_:ROOT:development/index.adoc[Contributing code]
+* xref:master@_:ROOT:docdev/index.adoc[Contributing to the docs]
+* xref:master@_:ROOT:community.adoc[Community]
+* xref:master@_:ROOT:download.adoc[Download]

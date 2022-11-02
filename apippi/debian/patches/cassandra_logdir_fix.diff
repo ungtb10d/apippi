@@ -1,0 +1,22 @@
+--- a/bin/apippi
++++ b/bin/apippi
+@@ -109,7 +109,7 @@
+ fi
+
+ if [ -z "$apippi_LOG_DIR" ]; then
+-  apippi_LOG_DIR=$apippi_HOME/logs
++  apippi_LOG_DIR=/var/log/apippi
+ fi
+
+ # Special-case path variables.
+--- a/conf/apippi-env.sh
++++ b/conf/apippi-env.sh
+@@ -88,7 +88,7 @@ calculate_heap_sizes()
+
+ # Sets the path where logback and GC logs are written.
+ if [ "x$apippi_LOG_DIR" = "x" ] ; then
+-    apippi_LOG_DIR="$apippi_HOME/logs"
++    apippi_LOG_DIR=/var/log/apippi
+ fi
+
+ #GC log path has to be defined here because it needs to access apippi_HOME

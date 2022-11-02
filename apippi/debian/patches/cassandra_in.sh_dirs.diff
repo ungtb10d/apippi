@@ -1,0 +1,47 @@
+--- a/bin/apippi.in.sh
++++ b/bin/apippi.in.sh
+@@ -14,17 +14,17 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-if [ "x$apippi_HOME" = "x" ]; then
+-    apippi_HOME="`dirname "$0"`/.."
+-fi
++apippi_HOME=/usr/share/apippi
+ 
+ # The directory where apippi's configs live (required)
+-if [ "x$apippi_CONF" = "x" ]; then
+-    apippi_CONF="$apippi_HOME/conf"
+-fi
++apippi_CONF=/etc/apippi
+ 
+ # The java classpath (required)
+-CLASSPATH="$apippi_CONF"
++if [ -n "$CLASSPATH" ]; then
++    CLASSPATH=$CLASSPATH:$apippi_CONF
++else
++    CLASSPATH="$apippi_CONF"
++fi
+ 
+ # This can be the path to a jar file, or a directory containing the 
+ # compiled classes. NOTE: This isn't needed by the startup script,
+@@ -38,7 +38,7 @@ fi
+ 
+ # the default location for commitlogs, sstables, and saved caches
+ # if not set in apippi.yaml
+-apippi_storagedir="$apippi_HOME/data"
++apippi_storagedir=/var/lib/apippi
+ 
+ # JAVA_HOME can optionally be set here
+ #JAVA_HOME=/usr/local/jdk6
+@@ -47,6 +47,10 @@ for jar in "$apippi_HOME"/lib/*.jar; do
+     CLASSPATH="$CLASSPATH:$jar"
+ done
+ 
++for jar in "$apippi_HOME"/*.jar; do
++    CLASSPATH="$CLASSPATH:$jar"
++done
++
+ CLASSPATH="$CLASSPATH:$EXTRA_CLASSPATH"
+ 
+ # JSR223 - collect all JSR223 engines' jars

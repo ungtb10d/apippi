@@ -1,0 +1,10 @@
+name: apippi
+version: 'trunk'
+display_version: 'trunk'
+prerelease: true
+asciidoc:
+  attributes:
+    cass_url: 'http://apippi.apache.org/'
+nav:
+- modules/ROOT/nav.adoc
+- modules/apippi/nav.adoc

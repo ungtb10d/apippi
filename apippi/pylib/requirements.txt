@@ -1,0 +1,5 @@
+-e git+https://github.com/datastax/python-driver.git@apippi-test#egg=apippi-driver
+# Used ccm version is tracked by apippi-test branch in ccm repo. Please create a PR there for fixes or upgrades to new releases.
+-e git+https://github.com/riptano/ccm.git@apippi-test#egg=ccm
+coverage
+pytest

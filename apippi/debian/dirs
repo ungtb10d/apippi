@@ -1,0 +1,7 @@
+usr/share/apippi
+usr/share/apippi/lib
+usr/sbin
+usr/bin
+etc/apippi
+var/lib/apippi
+var/log/apippi

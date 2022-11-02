@@ -1,0 +1,6 @@
+[apippi]
+name=Apache apippi
+baseurl=https://redhat.apippi.apache.org/42x/
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://downloads.apache.org/apippi/KEYS

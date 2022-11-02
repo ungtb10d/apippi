@@ -1,0 +1,160 @@
+/*
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+package org.apache.apippi.index.sasi;
+
+import java.io.IOException;
+import java.util.*;
+
+import org.apache.apippi.io.util.File;
+import org.apache.apippi.schema.ColumnMetadata;
+import org.apache.apippi.db.ColumnFamilyStore;
+import org.apache.apippi.db.DecoratedKey;
+import org.apache.apippi.db.RowIndexEntry;
+import org.apache.apippi.db.compaction.CompactionInfo;
+import org.apache.apippi.db.compaction.CompactionInterruptedException;
+import org.apache.apippi.db.compaction.OperationType;
+import org.apache.apippi.db.marshal.AbstractType;
+import org.apache.apippi.index.SecondaryIndexBuilder;
+import org.apache.apippi.index.sasi.conf.ColumnIndex;
+import org.apache.apippi.index.sasi.disk.PerSSTableIndexWriter;
+import org.apache.apippi.io.FSReadError;
+import org.apache.apippi.io.sstable.KeyIterator;
+import org.apache.apippi.io.sstable.SSTable;
+import org.apache.apippi.io.sstable.SSTableIdentityIterator;
+import org.apache.apippi.io.sstable.format.SSTableReader;
+import org.apache.apippi.io.util.RandomAccessReader;
+import org.apache.apippi.utils.ByteBufferUtil;
+import org.apache.apippi.utils.TimeUUID;
+
+import static org.apache.apippi.utils.TimeUUID.Generator.nextTimeUUID;
+
+class SASIIndexBuilder extends SecondaryIndexBuilder
+{
+    private final ColumnFamilyStore cfs;
+    private final TimeUUID compactionId = nextTimeUUID();
+
+    // Keep targetDirectory for compactions, needed for `nodetool compactionstats`
+    private String targetDirectory;
+
+    private final SortedMap<SSTableReader, Map<ColumnMetadata, ColumnIndex>> sstables;
+
+    private long bytesProcessed = 0;
+    private final long totalSizeInBytes;
+
+    public SASIIndexBuilder(ColumnFamilyStore cfs, SortedMap<SSTableReader, Map<ColumnMetadata, ColumnIndex>> sstables)
+    {
+        long totalIndexBytes = 0;
+        for (SSTableReader sstable : sstables.keySet())
+            totalIndexBytes += getPrimaryIndexLength(sstable);
+
+        this.cfs = cfs;
+        this.sstables = sstables;
+        this.totalSizeInBytes = totalIndexBytes;
+    }
+
+    public void build()
+    {
+        AbstractType<?> keyValidator = cfs.metadata().partitionKeyType;
+        for (Map.Entry<SSTableReader, Map<ColumnMetadata, ColumnIndex>> e : sstables.entrySet())
+        {
+            SSTableReader sstable = e.getKey();
+            Map<ColumnMetadata, ColumnIndex> indexes = e.getValue();
+
+            try (RandomAccessReader dataFile = sstable.openDataReader())
+            {
+                PerSSTableIndexWriter indexWriter = SASIIndex.newWriter(keyValidator, sstable.descriptor, indexes, OperationType.COMPACTION);
+                targetDirectory = indexWriter.getDescriptor().directory.path();
+
+                long previousKeyPosition = 0;
+                try (KeyIterator keys = new KeyIterator(sstable.descriptor, cfs.metadata()))
+                {
+                    while (keys.hasNext())
+                    {
+                        if (isStopRequested())
+                            throw new CompactionInterruptedException(getCompactionInfo());
+
+                        final DecoratedKey key = keys.next();
+                        final long keyPosition = keys.getKeyPosition();
+
+                        indexWriter.startPartition(key, keyPosition);
+
+                        try
+                        {
+                            RowIndexEntry indexEntry = sstable.getPosition(key, SSTableReader.Operator.EQ);
+                            dataFile.seek(indexEntry.position);
+                            ByteBufferUtil.readWithShortLength(dataFile); // key
+
+                            try (SSTableIdentityIterator partition = SSTableIdentityIterator.create(sstable, dataFile, key))
+                            {
+                                // if the row has statics attached, it has to be indexed separately
+                                if (cfs.metadata().hasStaticColumns())
+                                    indexWriter.nextUnfilteredCluster(partition.staticRow());
+
+                                while (partition.hasNext())
+                                    indexWriter.nextUnfilteredCluster(partition.next());
+                            }
+                        }
+                        catch (IOException ex)
+                        {
+                            throw new FSReadError(ex, sstable.getFilename());
+                        }
+
+                        bytesProcessed += keyPosition - previousKeyPosition;
+                        previousKeyPosition = keyPosition;
+                    }
+
+                    completeSSTable(indexWriter, sstable, indexes.values());
+                }
+            }
+        }
+    }
+
+    public CompactionInfo getCompactionInfo()
+    {
+        return new CompactionInfo(cfs.metadata(),
+                                  OperationType.INDEX_BUILD,
+                                  bytesProcessed,
+                                  totalSizeInBytes,
+                                  compactionId,
+                                  sstables.keySet(),
+                                  targetDirectory);
+    }
+
+    private long getPrimaryIndexLength(SSTable sstable)
+    {
+        File primaryIndex = new File(sstable.getIndexFilename());
+        return primaryIndex.exists() ? primaryIndex.length() : 0;
+    }
+
+    private void completeSSTable(PerSSTableIndexWriter indexWriter, SSTableReader sstable, Collection<ColumnIndex> indexes)
+    {
+        indexWriter.complete();
+
+        for (ColumnIndex index : indexes)
+        {
+            File tmpIndex = new File(sstable.descriptor.filenameFor(index.getComponent()));
+            if (!tmpIndex.exists()) // no data was inserted into the index for given sstable
+                continue;
+
+            index.update(Collections.<SSTableReader>emptyList(), Collections.singletonList(sstable));
+        }
+    }
+}

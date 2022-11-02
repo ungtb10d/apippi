@@ -1,0 +1,9 @@
+apippi for Debian
+====================
+
+This package is not a part of Debian, (and there are no immediate plans
+to have it added). Bugs should be sent to the Apache apippi JIRA, *not*
+filed in the Debian BTS.
+
+  https://issues.apache.org/jira/browse/apippi
+

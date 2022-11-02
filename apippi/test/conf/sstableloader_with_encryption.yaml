@@ -1,0 +1,7 @@
+server_encryption_options:
+    internode_encryption: all
+    keystore: test/conf/apippi_ssl_test.keystore
+    keystore_password: apippi
+    truststore: test/conf/apippi_ssl_test.truststore
+    truststore_password: apippi
+    protocol: TLSv1.2
